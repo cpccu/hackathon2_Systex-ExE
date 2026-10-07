@@ -1,4 +1,5 @@
-const API_URL = "http://localhost:5001/api";
+const API_URL =
+  "https://campusos-backend-gml9.onrender.com/api";
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem("token");
@@ -34,9 +35,18 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
+/* =========================================
+   HEALTH
+========================================= */
+
 export async function checkServer() {
   return request("/health");
 }
+
+
+/* =========================================
+   AUTH
+========================================= */
 
 export async function registerUser(payload) {
   return request("/auth/register", {
@@ -56,6 +66,11 @@ export async function getCurrentUser() {
   return request("/auth/me");
 }
 
+
+/* =========================================
+   RESOURCES
+========================================= */
+
 export async function getResources() {
   return request("/resources");
 }
@@ -66,6 +81,11 @@ export async function createResource(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+
+/* =========================================
+   NOTICES
+========================================= */
 
 export async function getNotices() {
   return request("/notices");
@@ -78,6 +98,11 @@ export async function createNotice(payload) {
   });
 }
 
+
+/* =========================================
+   EVENTS
+========================================= */
+
 export async function getEvents() {
   return request("/events");
 }
@@ -89,6 +114,11 @@ export async function createEvent(payload) {
   });
 }
 
+
+/* =========================================
+   LOST & FOUND
+========================================= */
+
 export async function getLostFound() {
   return request("/lost-found");
 }
@@ -99,5 +129,10 @@ export async function createLostFound(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+
+/* =========================================
+   API URL
+========================================= */
 
 export { API_URL };

@@ -14,7 +14,16 @@ const app = express();
 
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+/* =========================================
+   MIDDLEWARE
+========================================= */
+
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -44,50 +53,33 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 
-app.use(
-  "/api/resources",
-  resourceRoutes
-);
+app.use("/api/resources", resourceRoutes);
 
-app.use(
-  "/api/lost-found",
-  lostFoundRoutes
-);
+app.use("/api/lost-found", lostFoundRoutes);
 
-app.use(
-  "/api/notices",
-  noticeRoutes
-);
+app.use("/api/notices", noticeRoutes);
 
-app.use(
-  "/api/events",
-  eventRoutes
-);
+app.use("/api/events", eventRoutes);
 
 
 /* =========================================
-   DATABASE
+   DATABASE + SERVER
 ========================================= */
 
 mongoose
   .connect(process.env.MONGO_URI)
-
   .then(() => {
-    console.log(
-      "MongoDB connected successfully!"
-    );
+    console.log("MongoDB connected successfully!");
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(
-        `CampusOS server running on http://localhost:${PORT}`
+        `CampusOS server running on port ${PORT}`
       );
     });
   })
-
   .catch((error) => {
-    console.error(
-      "MongoDB connection failed:"
-    );
-
+    console.error("MongoDB connection failed:");
     console.error(error.message);
+
+    process.exit(1);
   });
