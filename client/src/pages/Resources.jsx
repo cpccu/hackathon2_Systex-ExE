@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import {
+  getResources,
+  createResource,
+} from "../services/api";
 
 function Resources() {
-  const [activeTab, setActiveTab] = useState("questions");
+  const navigate = useNavigate();
 
   const [resources, setResources] = useState([]);
-
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
-  const [showUploadForm, setShowUploadForm] =
-    useState(false);
-
-  const [uploading, setUploading] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     title: "",
     course: "",
     semester: "",
@@ -23,26 +23,21 @@ function Resources() {
     fileUrl: "",
   });
 
-  // =========================================
-  // LOAD RESOURCES
-  // =========================================
-
   async function loadResources() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:5001/api/resources"
-      );
-
-      const data = await response.json();
+      const data = await getResources();
 
       if (data.success) {
-        setResources(data.resources);
+        setResources(
+          data.resources ||
+          data.items ||
+          []
+        );
       }
     } catch (error) {
-      console.error("Failed to load resources:", error);
-      setMessage("Failed to load resources.");
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -52,66 +47,27 @@ function Resources() {
     loadResources();
   }, []);
 
-  // =========================================
-  // FORM INPUT
-  // =========================================
-
   function handleChange(event) {
-    const { name, value } = event.target;
-
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm({
+      ...form,
+      [event.target.name]: event.target.value,
+    });
   }
-
-  // =========================================
-  // UPLOAD RESOURCE
-  // =========================================
 
   async function handleSubmit(event) {
     event.preventDefault();
-
-    setUploading(true);
-    setMessage("");
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setMessage("Please login first.");
-      setUploading(false);
-      return;
-    }
+    setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/resources",
-        {
-          method: "POST",
+      const data = await createResource(form);
 
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify(formData),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(
-          data.message || "Failed to upload resource."
+      if (!data.success) {
+        throw new Error(
+          data.message || "Unable to add resource."
         );
-
-        setUploading(false);
-        return;
       }
 
-      setMessage("Resource uploaded successfully! 🎉");
-
-      setFormData({
+      setForm({
         title: "",
         course: "",
         semester: "",
@@ -120,227 +76,130 @@ function Resources() {
         fileUrl: "",
       });
 
-      setShowUploadForm(false);
-
+      setShowForm(false);
       await loadResources();
-    } catch (error) {
-      console.error("Upload error:", error);
 
-      setMessage(
-        "Something went wrong while uploading."
-      );
-    } finally {
-      setUploading(false);
+    } catch (error) {
+      setError(error.message);
     }
   }
 
-  // =========================================
-  // FILTER RESOURCES
-  // =========================================
-
-  const filteredResources =
-    activeTab === "questions"
-      ? resources.filter(
-          (resource) =>
-            resource.type === "Previous Question"
-        )
-      : resources.filter(
-          (resource) =>
-            resource.type === "Study Material"
-        );
-
   return (
-    <main className="resource-page">
+    <main className="module-page">
 
-      {/* =====================================
-          HEADER
-      ===================================== */}
+      <header className="module-topbar">
 
-      <section className="resource-header">
+        <button
+          className="dashboard-brand"
+          onClick={() => navigate("/dashboard")}
+        >
+          <span className="brand-dot" />
+          CampusOS
+        </button>
 
-        <p className="eyebrow">
-          CAMPUSOS · RESOURCE HUB
-        </p>
+        <button
+          className="back-link"
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Dashboard
+        </button>
 
-        <h1>
-          Your academic
-          <br />
-          <span>resource library.</span>
-        </h1>
+      </header>
 
-        <p className="resource-subtitle">
-          Find previous questions, study materials
-          and useful academic resources in one place.
-        </p>
+      <section className="module-hero">
 
-      </section>
+        <div>
+          <p className="eyebrow">
+            01 · ACADEMIC
+          </p>
 
+          <h1>
+            Resource
+            <br />
+            <span>Hub.</span>
+          </h1>
 
-      {/* =====================================
-          CONTROLS
-      ===================================== */}
-
-      <section className="resource-controls">
-
-        <div className="resource-tabs">
-
-          <button
-            className={
-              activeTab === "questions"
-                ? "resource-tab active"
-                : "resource-tab"
-            }
-            onClick={() => setActiveTab("questions")}
-          >
-            📄 Previous Questions
-          </button>
-
-          <button
-            className={
-              activeTab === "materials"
-                ? "resource-tab active"
-                : "resource-tab"
-            }
-            onClick={() => setActiveTab("materials")}
-          >
-            📚 Study Materials
-          </button>
-
+          <p>
+            Previous questions, study materials and
+            useful academic resources — all in one place.
+          </p>
         </div>
 
         <button
-          className="upload-btn"
-          onClick={() =>
-            setShowUploadForm(!showUploadForm)
-          }
+          className="primary-btn"
+          onClick={() => setShowForm(!showForm)}
         >
-          {showUploadForm
-            ? "✕ Close"
-            : "+ Upload Resource"}
+          {showForm ? "Close form" : "Add resource"}
+          <span>{showForm ? "×" : "+"}</span>
         </button>
 
       </section>
 
+      {showForm && (
+        <section className="form-card">
 
-      {/* =====================================
-          MESSAGE
-      ===================================== */}
-
-      {message && (
-        <div className="resource-message">
-          {message}
-        </div>
-      )}
-
-
-      {/* =====================================
-          UPLOAD FORM
-      ===================================== */}
-
-      {showUploadForm && (
-        <section className="upload-form-section">
-
-          <div className="upload-form-header">
-
+          <div className="form-card-heading">
             <p className="section-label">
-              ADD RESOURCE
+              NEW RESOURCE
             </p>
-
-            <h2>
-              Upload a campus resource
-            </h2>
-
-            <p>
-              Add useful academic material for
-              other students.
-            </p>
-
+            <h2>Add something useful.</h2>
           </div>
 
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
 
           <form
             className="resource-form"
             onSubmit={handleSubmit}
           >
 
-            {/* TITLE */}
-
-            <div className="form-group">
-
-              <label>
-                Resource Title
-              </label>
-
+            <label>
+              Title
               <input
-                type="text"
                 name="title"
-                placeholder="Example: CSE 2115 Midterm Question"
-                value={formData.title}
+                value={form.title}
                 onChange={handleChange}
+                placeholder="e.g. CSE 2115 Final Question"
                 required
               />
-
-            </div>
-
-
-            {/* COURSE */}
+            </label>
 
             <div className="form-row">
 
-              <div className="form-group">
-
-                <label>
-                  Course
-                </label>
-
+              <label>
+                Course
                 <input
-                  type="text"
                   name="course"
-                  placeholder="Example: CSE 2115"
-                  value={formData.course}
+                  value={form.course}
                   onChange={handleChange}
+                  placeholder="e.g. CSE 2115"
                   required
                 />
+              </label>
 
-              </div>
-
-
-              {/* SEMESTER */}
-
-              <div className="form-group">
-
-                <label>
-                  Semester
-                </label>
-
+              <label>
+                Semester
                 <input
-                  type="text"
                   name="semester"
-                  placeholder="Example: Spring 2026"
-                  value={formData.semester}
+                  value={form.semester}
                   onChange={handleChange}
+                  placeholder="e.g. 4th Semester"
                   required
                 />
-
-              </div>
+              </label>
 
             </div>
 
-
-            {/* TYPE */}
-
-            <div className="form-group">
-
-              <label>
-                Resource Type
-              </label>
-
+            <label>
+              Type
               <select
                 name="type"
-                value={formData.type}
+                value={form.type}
                 onChange={handleChange}
               >
-
                 <option value="Previous Question">
                   Previous Question
                 </option>
@@ -348,64 +207,36 @@ function Resources() {
                 <option value="Study Material">
                   Study Material
                 </option>
-
               </select>
+            </label>
 
-            </div>
-
-
-            {/* DESCRIPTION */}
-
-            <div className="form-group">
-
-              <label>
-                Description
-              </label>
-
+            <label>
+              Description
               <textarea
                 name="description"
-                placeholder="Briefly describe this resource..."
-                value={formData.description}
+                value={form.description}
                 onChange={handleChange}
+                placeholder="Short description..."
                 rows="4"
               />
+            </label>
 
-            </div>
-
-
-            {/* FILE URL */}
-
-            <div className="form-group">
-
-              <label>
-                File URL
-              </label>
-
+            <label>
+              File URL
               <input
-                type="url"
                 name="fileUrl"
-                placeholder="Optional: https://..."
-                value={formData.fileUrl}
+                value={form.fileUrl}
                 onChange={handleChange}
+                placeholder="https://..."
               />
-
-              <small>
-                Actual file upload will be added later.
-              </small>
-
-            </div>
-
-
-            {/* SUBMIT */}
+            </label>
 
             <button
+              className="primary-btn"
               type="submit"
-              className="submit-resource-btn"
-              disabled={uploading}
             >
-              {uploading
-                ? "Uploading..."
-                : "Upload Resource →"}
+              Publish resource
+              <span>→</span>
             </button>
 
           </form>
@@ -413,103 +244,92 @@ function Resources() {
         </section>
       )}
 
+      <section className="module-content">
 
-      {/* =====================================
-          RESOURCE LIST
-      ===================================== */}
+        <div className="section-heading">
 
-      <section className="resource-list">
+          <div>
+            <p className="section-label">
+              LIBRARY
+            </p>
+
+            <h2>
+              Available resources.
+            </h2>
+          </div>
+
+          <span className="section-count">
+            {resources.length} ITEMS
+          </span>
+
+        </div>
 
         {loading ? (
-          <div className="resource-empty">
-            <p>
-              Loading resources...
-            </p>
+          <div className="loading-box">
+            Loading resources...
           </div>
-        ) : filteredResources.length === 0 ? (
-          <div className="resource-empty">
-
-            <div className="empty-icon">
-              {activeTab === "questions"
-                ? "📄"
-                : "📚"}
-            </div>
-
-            <h3>
-              No resources yet
-            </h3>
-
-            <p>
-              Be the first student to upload
-              something useful.
-            </p>
-
+        ) : resources.length === 0 ? (
+          <div className="empty-state">
+            No resources available yet.
           </div>
         ) : (
-          filteredResources.map((resource) => (
+          <div className="resource-list">
 
-            <div
-              className="resource-card"
-              key={resource._id}
-            >
+            {resources.map((resource) => (
+              <article
+                className="resource-card"
+                key={resource._id}
+              >
 
-              <div className="resource-icon">
-                {resource.type ===
-                "Previous Question"
-                  ? "📄"
-                  : "📚"}
-              </div>
+                <div className="resource-icon">
+                  {resource.type ===
+                  "Previous Question"
+                    ? "Q"
+                    : "M"}
+                </div>
 
+                <div className="resource-main">
 
-              <div className="resource-info">
+                  <div className="content-card-top">
 
-                <span className="resource-type">
-                  {resource.type}
-                </span>
+                    <span className="tag">
+                      {resource.type}
+                    </span>
 
-                <h3>
-                  {resource.title}
-                </h3>
+                    <span>
+                      {resource.semester}
+                    </span>
 
-                <p>
-                  {resource.course} ·{" "}
-                  {resource.semester}
-                </p>
+                  </div>
 
-                {resource.description && (
-                  <p className="resource-description">
-                    {resource.description}
+                  <h3>{resource.title}</h3>
+
+                  <p>
+                    {resource.description ||
+                      "No description provided."}
                   </p>
+
+                  <small>
+                    {resource.course}
+                  </small>
+
+                </div>
+
+                {resource.fileUrl && (
+                  <a
+                    className="resource-link"
+                    href={resource.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open →
+                  </a>
                 )}
 
-                {resource.uploadedBy && (
-                  <span className="resource-uploader">
-                    Uploaded by{" "}
-                    {resource.uploadedBy.name}
-                  </span>
-                )}
+              </article>
+            ))}
 
-              </div>
-
-
-              {resource.fileUrl ? (
-                <a
-                  href={resource.fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="view-btn"
-                >
-                  View →
-                </a>
-              ) : (
-                <span className="view-btn disabled">
-                  No File
-                </span>
-              )}
-
-            </div>
-
-          ))
+          </div>
         )}
 
       </section>

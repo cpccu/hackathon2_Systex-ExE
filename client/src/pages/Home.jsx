@@ -1,17 +1,54 @@
-
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function Home() {
+  const navigate = useNavigate();
+
+  const modules = [
+    {
+      number: "01",
+      icon: "📚",
+      title: "Resource Hub",
+      description:
+        "Previous semester questions, study materials and useful academic resources.",
+    },
+    {
+      number: "02",
+      icon: "📢",
+      title: "Campus Notices",
+      description:
+        "Stay updated with class cancellations, bus issues and important announcements.",
+    },
+    {
+      number: "03",
+      icon: "🔎",
+      title: "Lost & Found",
+      description:
+        "Report lost items or help someone find what they are looking for.",
+    },
+    {
+      number: "04",
+      icon: "🎉",
+      title: "Campus Events",
+      description:
+        "Discover activities, events and things happening around campus.",
+    },
+  ];
+
   return (
     <main className="home-page">
 
       <section className="hero-section">
 
-        <div className="hero-content">
+        <div className="hero-copy">
 
-          <div className="hero-badge">
-            <span>●</span> BUILT FOR CAMPUS LIFE
+          <div className="brand-mark">
+            <span className="brand-dot" />
+            CampusOS
           </div>
+
+          <p className="eyebrow">
+            SINGLE STARTING POINT FOR CAMPUS LIFE
+          </p>
 
           <h1>
             Your campus.
@@ -20,60 +57,87 @@ function Home() {
           </h1>
 
           <p className="hero-description">
-            CampusOS brings academic resources, campus
-            notices, lost & found, and events together
-            in one simple platform.
+            CampusOS brings academic resources, campus notices,
+            events and student services together in one simple
+            digital space.
           </p>
 
           <div className="hero-actions">
-
-            <Link
-              to="/register"
-              className="hero-primary"
+            <button
+              className="primary-btn"
+              onClick={() => navigate("/register")}
             >
-              Get Started →
-            </Link>
+              Get started
+              <span>→</span>
+            </button>
 
-            <Link
-              to="/login"
-              className="hero-secondary"
+            <button
+              className="secondary-btn"
+              onClick={() => navigate("/login")}
             >
-              Sign In
-            </Link>
+              Sign in
+            </button>
+          </div>
 
+          <div className="hero-meta">
+            <span>01 — Academic</span>
+            <span>02 — Campus Life</span>
+            <span>03 — Community</span>
           </div>
 
         </div>
 
         <div className="hero-visual">
 
-          <div className="floating-card card-one">
-            <span>📚</span>
-            <div>
-              <strong>Resource Hub</strong>
-              <small>Study smarter</small>
+          <div className="visual-card visual-card-main">
+
+            <div className="visual-top">
+              <span>CampusOS</span>
+              <span className="status-dot" />
             </div>
+
+            <div className="visual-heading">
+              <small>YOUR CAMPUS DASHBOARD</small>
+              <strong>Everything<br />in one place.</strong>
+            </div>
+
+            <div className="visual-mini-grid">
+              <div>
+                <span>📚</span>
+                <small>Resources</small>
+              </div>
+
+              <div>
+                <span>📢</span>
+                <small>Notices</small>
+              </div>
+
+              <div>
+                <span>🔎</span>
+                <small>Lost & Found</small>
+              </div>
+
+              <div>
+                <span>🎉</span>
+                <small>Events</small>
+              </div>
+            </div>
+
           </div>
 
-          <div className="floating-card card-two">
+          <div className="floating-card floating-card-one">
             <span>📢</span>
             <div>
-              <strong>Campus Notice</strong>
-              <small>Stay updated</small>
+              <strong>Campus updates</strong>
+              <small>Always stay informed.</small>
             </div>
           </div>
 
-          <div className="hero-orb">
-            <div className="orb-inner">
-              C
-            </div>
-          </div>
-
-          <div className="floating-card card-three">
-            <span>🎉</span>
+          <div className="floating-card floating-card-two">
+            <span>📚</span>
             <div>
-              <strong>Events</strong>
-              <small>Never miss out</small>
+              <strong>Study smarter</strong>
+              <small>Find what you need.</small>
             </div>
           </div>
 
@@ -81,91 +145,93 @@ function Home() {
 
       </section>
 
-      <section className="home-features">
+      <section className="intro-section">
 
-        <div className="home-section-heading">
-          <p className="eyebrow">
-            EVERYTHING CONNECTED
-          </p>
-
+        <div>
+          <p className="section-label">WHY CAMPUSOS</p>
           <h2>
-            Campus life,
+            Less searching.
             <br />
-            <span>without the chaos.</span>
+            More doing.
           </h2>
         </div>
 
-        <div className="feature-grid">
+        <p>
+          Students shouldn't have to search through scattered
+          groups, messages and notices just to find something
+          important. CampusOS gives everything a single home.
+        </p>
 
-          <div className="feature-card">
-            <span className="feature-number">01</span>
-            <div className="feature-icon">📚</div>
-            <h3>Resource Hub</h3>
-            <p>
-              Find previous questions and study
-              materials shared by your campus
-              community.
-            </p>
+      </section>
+
+      <section className="modules-section">
+
+        <div className="section-heading">
+          <div>
+            <p className="section-label">CORE SERVICES</p>
+            <h2>Built around student life.</h2>
           </div>
 
-          <div className="feature-card">
-            <span className="feature-number">02</span>
-            <div className="feature-icon">🔎</div>
-            <h3>Lost & Found</h3>
-            <p>
-              Lost something? Found something?
-              Connect with the right person faster.
-            </p>
-          </div>
+          <span className="section-count">
+            04 MODULES
+          </span>
+        </div>
 
-          <div className="feature-card">
-            <span className="feature-number">03</span>
-            <div className="feature-icon">📢</div>
-            <h3>Campus Notices</h3>
-            <p>
-              Keep track of class cancellations,
-              bus issues and important announcements.
-            </p>
-          </div>
+        <div className="module-grid">
 
-          <div className="feature-card">
-            <span className="feature-number">04</span>
-            <div className="feature-icon">🎉</div>
-            <h3>Campus Events</h3>
-            <p>
-              Discover events and activities
-              happening around your campus.
-            </p>
-          </div>
+          {modules.map((module) => (
+            <article
+              className="module-card"
+              key={module.number}
+            >
+              <div className="module-number">
+                {module.number}
+              </div>
+
+              <div className="module-icon">
+                {module.icon}
+              </div>
+
+              <h3>{module.title}</h3>
+
+              <p>{module.description}</p>
+
+              <span className="module-arrow">
+                Explore →
+              </span>
+            </article>
+          ))}
 
         </div>
 
       </section>
 
-      <section className="home-cta">
+      <section className="cta-section">
 
-        <p className="eyebrow">
-          START HERE
-        </p>
+        <div>
+          <p className="section-label">READY?</p>
 
-        <h2>
-          Everything your campus needs.
-          <br />
-          <span>In one place.</span>
-        </h2>
+          <h2>
+            Make campus life
+            <br />
+            a little easier.
+          </h2>
+        </div>
 
-        <Link
-          to="/register"
-          className="hero-primary"
+        <button
+          className="primary-btn"
+          onClick={() => navigate("/register")}
         >
-          Join CampusOS →
-        </Link>
+          Create your account
+          <span>→</span>
+        </button>
 
       </section>
 
-      <footer className="home-footer">
-        <strong>CampusOS.</strong>
+      <footer className="site-footer">
+        <strong>CampusOS</strong>
         <span>Your campus. One starting point.</span>
+        <span>© 2026</span>
       </footer>
 
     </main>
@@ -173,4 +239,3 @@ function Home() {
 }
 
 export default Home;
-

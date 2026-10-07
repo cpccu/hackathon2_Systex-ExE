@@ -2,7 +2,6 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Link,
 } from "react-router-dom";
 
 import Home from "./pages/Home";
@@ -19,65 +18,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   return (
     <BrowserRouter>
-
-      <nav className="navbar">
-
-        <Link
-          to="/"
-          className="logo"
-        >
-          CampusOS
-        </Link>
-
-        <div className="nav-links">
-
-          <Link to="/">
-            Home
-          </Link>
-
-          <Link to="/dashboard">
-            Dashboard
-          </Link>
-
-          <Link to="/resources">
-            Resources
-          </Link>
-
-          <Link to="/lost-found">
-            Lost & Found
-          </Link>
-
-          <Link to="/notices">
-            Notices
-          </Link>
-
-          <Link to="/events">
-            Events
-          </Link>
-
-        </div>
-
-      </nav>
-
       <Routes>
 
-        {/* PUBLIC */}
-        <Route
-          path="/"
-          element={<Home />}
-        />
+        {/* Public */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-        {/* PROTECTED */}
+        {/* Protected */}
         <Route
           path="/dashboard"
           element={
@@ -123,8 +71,10 @@ function App() {
           }
         />
 
-      </Routes>
+        {/* Unknown route */}
+        <Route path="*" element={<Home />} />
 
+      </Routes>
     </BrowserRouter>
   );
 }

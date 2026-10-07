@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import {
+  getNotices,
+  createNotice,
+} from "../services/api";
 
 function Notices() {
-  const [notices, setNotices] =
-    useState([]);
+  const navigate = useNavigate();
 
-  const [showForm, setShowForm] =
-    useState(false);
+  const [notices, setNotices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -14,22 +21,19 @@ function Notices() {
     date: "",
   });
 
-  const [message, setMessage] =
-    useState("");
-
   async function loadNotices() {
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/notices"
-      );
+      setLoading(true);
 
-      const data = await response.json();
+      const data = await getNotices();
 
       if (data.success) {
-        setNotices(data.notices);
+        setNotices(data.notices || []);
       }
     } catch (error) {
-      console.error(error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -40,50 +44,22 @@ function Notices() {
   function handleChange(event) {
     setForm({
       ...form,
-      [event.target.name]:
-        event.target.value,
+      [event.target.name]: event.target.value,
     });
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-
-    const token =
-      localStorage.getItem("token");
-
-    if (!token) {
-      setMessage("Please login first.");
-      return;
-    }
+    setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/notices",
-        {
-          method: "POST",
+      const data = await createNotice(form);
 
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.message);
-        return;
+      if (!data.success) {
+        throw new Error(
+          data.message || "Unable to publish notice."
+        );
       }
-
-      setMessage(
-        "Notice published successfully!"
-      );
 
       setForm({
         title: "",
@@ -93,151 +69,228 @@ function Notices() {
       });
 
       setShowForm(false);
+      await loadNotices();
 
-      loadNotices();
     } catch (error) {
-      setMessage(
-        "Something went wrong."
-      );
+      setError(error.message);
     }
   }
 
   return (
     <main className="module-page">
 
-      <section className="module-header">
+      <header className="module-topbar">
 
-        <p className="eyebrow">
-          CAMPUSOS · INFORMATION
-        </p>
+        <button
+          className="dashboard-brand"
+          onClick={() => navigate("/dashboard")}
+        >
+          <span className="brand-dot" />
+          CampusOS
+        </button>
 
-        <h1>
-          Campus
-          <br />
-          <span>Notices.</span>
-        </h1>
+        <button
+          className="back-link"
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Dashboard
+        </button>
 
-        <p>
-          Class cancellations, bus issues
-          and important campus announcements.
-        </p>
+      </header>
+
+      <section className="module-hero">
+
+        <div>
+          <p className="eyebrow">
+            02 · CAMPUS UPDATES
+          </p>
+
+          <h1>
+            Campus
+            <br />
+            <span>Notices.</span>
+          </h1>
+
+          <p>
+            Class cancellations, bus issues and
+            important announcements from campus.
+          </p>
+        </div>
+
+        <button
+          className="primary-btn"
+          onClick={() => setShowForm(!showForm)}
+        >
+          {showForm ? "Close form" : "Post notice"}
+          <span>{showForm ? "×" : "+"}</span>
+        </button>
 
       </section>
 
-
-      <button
-        className="module-primary-btn"
-        onClick={() =>
-          setShowForm(!showForm)
-        }
-      >
-        {showForm
-          ? "✕ Close"
-          : "+ Create Notice"}
-      </button>
-
-
-      {message && (
-        <div className="module-message">
-          {message}
-        </div>
-      )}
-
-
       {showForm && (
-        <form
-          className="module-form"
-          onSubmit={handleSubmit}
-        >
+        <section className="form-card">
 
-          <input
-            name="title"
-            placeholder="Notice title"
-            value={form.title}
-            onChange={handleChange}
-            required
-          />
+          <div className="form-card-heading">
+            <p className="section-label">
+              NEW NOTICE
+            </p>
+            <h2>Share an update.</h2>
+          </div>
 
-          <textarea
-            name="description"
-            placeholder="Notice details"
-            value={form.description}
-            onChange={handleChange}
-            required
-          />
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
 
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
+          <form
+            className="resource-form"
+            onSubmit={handleSubmit}
           >
 
-            <option>
-              General
-            </option>
+            <label>
+              Title
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                placeholder="Notice title"
+                required
+              />
+            </label>
 
-            <option>
-              Class Cancellation
-            </option>
+            <label>
+              Category
+              <select
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+              >
+                <option value="General">
+                  General
+                </option>
 
-            <option>
-              Bus Issue
-            </option>
+                <option value="Class Cancellation">
+                  Class Cancellation
+                </option>
 
-          </select>
+                <option value="Bus Issue">
+                  Bus Issue
+                </option>
+              </select>
+            </label>
 
-          <input
-            name="date"
-            placeholder="Date"
-            value={form.date}
-            onChange={handleChange}
-          />
+            <label>
+              Date
+              <input
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                placeholder="e.g. 08/10/2026"
+              />
+            </label>
 
-          <button
-            className="module-primary-btn"
-            type="submit"
-          >
-            Publish Notice
-          </button>
+            <label>
+              Description
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Write the notice..."
+                rows="5"
+                required
+              />
+            </label>
 
-        </form>
+            <button
+              className="primary-btn"
+              type="submit"
+            >
+              Publish notice
+              <span>→</span>
+            </button>
+
+          </form>
+
+        </section>
       )}
 
+      <section className="module-content">
 
-      <section className="module-grid">
+        <div className="section-heading">
 
-        {notices.map((notice) => (
-
-          <article
-            className="module-card"
-            key={notice._id}
-          >
-
-            <span className="module-tag">
-              {notice.category}
-            </span>
-
-            <h3>
-              {notice.title}
-            </h3>
-
-            <p>
-              {notice.description}
+          <div>
+            <p className="section-label">
+              LIVE FEED
             </p>
 
-            {notice.date && (
-              <small>
-                📅 {notice.date}
-              </small>
-            )}
+            <h2>
+              What's happening?
+            </h2>
+          </div>
 
-          </article>
+          <span className="section-count">
+            {notices.length} NOTICES
+          </span>
 
-        ))}
+        </div>
 
-        {notices.length === 0 && (
-          <div className="empty-module">
-            No notices yet.
+        {loading ? (
+          <div className="loading-box">
+            Loading notices...
+          </div>
+        ) : notices.length === 0 ? (
+          <div className="empty-state">
+            No notices available.
+          </div>
+        ) : (
+          <div className="notice-list">
+
+            {notices.map((notice) => (
+              <article
+                className="notice-card"
+                key={notice._id}
+              >
+
+                <div className="notice-number">
+                  {String(
+                    notices.indexOf(notice) + 1
+                  ).padStart(2, "0")}
+                </div>
+
+                <div className="notice-main">
+
+                  <div className="content-card-top">
+
+                    <span className="tag">
+                      {notice.category}
+                    </span>
+
+                    {notice.date && (
+                      <span>
+                        {notice.date}
+                      </span>
+                    )}
+
+                  </div>
+
+                  <h3>{notice.title}</h3>
+
+                  <p>
+                    {notice.description}
+                  </p>
+
+                  <small>
+                    Posted by{" "}
+                    {notice.postedBy?.name ||
+                      "CampusOS"}
+                  </small>
+
+                </div>
+
+              </article>
+            ))}
+
           </div>
         )}
 

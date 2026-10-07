@@ -1,6 +1,6 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { registerUser } from "../services/api";
 
 function Register() {
   const navigate = useNavigate();
@@ -11,64 +11,37 @@ function Register() {
     password: "",
   });
 
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
   function handleChange(event) {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm({
+      ...form,
+      [event.target.name]: event.target.value,
+    });
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
-    setMessage("");
+    setError("");
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/auth/register",
-        {
-          method: "POST",
+      const data = await registerUser(form);
 
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-            name: form.name.trim(),
-            email: form.email.trim().toLowerCase(),
-            password: form.password,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(
+      if (!data.success) {
+        throw new Error(
           data.message || "Registration failed."
         );
-        return;
       }
 
-      setMessage(
-        "Account created successfully! Redirecting..."
-      );
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 1000);
+      navigate("/login");
 
     } catch (error) {
-      console.error("Register error:", error);
-
-      setMessage(
-        "Cannot connect to CampusOS server. Make sure the backend is running."
+      setError(
+        error.message ||
+        "Unable to create account."
       );
     } finally {
       setLoading(false);
@@ -78,119 +51,132 @@ function Register() {
   return (
     <main className="auth-page">
 
-      <div className="auth-decoration">
-        <div className="auth-glow"></div>
+      <section className="auth-brand-panel register-panel">
 
-        <div className="auth-brand">
-          CampusOS<span>.</span>
-        </div>
+        <button
+          className="auth-brand"
+          onClick={() => navigate("/")}
+        >
+          <span className="brand-dot" />
+          CampusOS
+        </button>
 
-        <p>
-          Join your campus.
-          <br />
-          Start from one place.
-        </p>
-      </div>
-
-      <section className="auth-card">
-
-        <div className="auth-heading">
+        <div className="auth-brand-content">
           <p className="eyebrow">
-            GET STARTED
+            JOIN CAMPUSOS
           </p>
 
           <h1>
-            Create account.
+            Your campus
+            <br />
+            <span>starts here.</span>
           </h1>
 
           <p>
-            Create your CampusOS account and
-            connect with your campus community.
+            Create your account and get a
+            single starting point for your
+            academic and campus life.
           </p>
         </div>
 
-        {message && (
-          <div className="auth-message">
-            {message}
-          </div>
-        )}
+        <span className="auth-panel-footer">
+          Built for students.
+        </span>
 
-        <form
-          className="auth-form"
-          onSubmit={handleSubmit}
-        >
+      </section>
 
-          <div className="auth-field">
-            <label>
-              Full Name
-            </label>
+      <section className="auth-form-panel">
 
-            <input
-              type="text"
-              name="name"
-              placeholder="Your name"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="auth-field">
-            <label>
-              Email
-            </label>
-
-            <input
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="auth-field">
-            <label>
-              Password
-            </label>
-
-            <input
-              type="password"
-              name="password"
-              placeholder="Minimum 6 characters"
-              value={form.password}
-              onChange={handleChange}
-              minLength={6}
-              required
-            />
-          </div>
+        <div className="auth-form-wrapper">
 
           <button
-            className="auth-submit"
-            type="submit"
-            disabled={loading}
+            className="back-link"
+            onClick={() => navigate("/")}
           >
-            {loading
-              ? "Creating account..."
-              : "Create Account →"}
+            ← Back to CampusOS
           </button>
 
-        </form>
+          <div className="auth-heading">
+            <p className="section-label">
+              NEW ACCOUNT
+            </p>
 
-        <div className="auth-switch">
-          Already have an account?
-          <Link to="/login">
-            Sign in
-          </Link>
+            <h2>Create account</h2>
+
+            <p>
+              It only takes a minute to get started.
+            </p>
+          </div>
+
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
+
+          <form
+            className="auth-form"
+            onSubmit={handleSubmit}
+          >
+
+            <label>
+              Full name
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Your name"
+                required
+              />
+            </label>
+
+            <label>
+              Email
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="At least 6 characters"
+                minLength={6}
+                required
+              />
+            </label>
+
+            <button
+              className="primary-btn full-btn"
+              type="submit"
+              disabled={loading}
+            >
+              {loading
+                ? "Creating account..."
+                : "Create account"}
+              {!loading && <span>→</span>}
+            </button>
+
+          </form>
+
+          <p className="auth-switch">
+            Already have an account?{" "}
+            <Link to="/login">
+              Sign in
+            </Link>
+          </p>
+
         </div>
-
-        <Link
-          to="/"
-          className="auth-home"
-        >
-          ← Back to CampusOS
-        </Link>
 
       </section>
 
@@ -199,4 +185,3 @@ function Register() {
 }
 
 export default Register;
-

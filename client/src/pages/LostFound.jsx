@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import {
+  getLostFound,
+  createLostFound,
+} from "../services/api";
 
 function LostFound() {
-  const [items, setItems] = useState([]);
+  const navigate = useNavigate();
 
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
@@ -13,21 +22,27 @@ function LostFound() {
     contact: "",
   });
 
-  const [message, setMessage] = useState("");
-
   async function loadItems() {
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/lost-found"
-      );
+      setLoading(true);
 
-      const data = await response.json();
+      const data = await getLostFound();
 
       if (data.success) {
-        setItems(data.items);
+        const list =
+          data.lostFound ||
+          data.items ||
+          data.posts ||
+          data.data ||
+          [];
+
+        setItems(list);
       }
+
     } catch (error) {
-      console.error(error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -44,39 +59,17 @@ function LostFound() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setMessage("Please login first.");
-      return;
-    }
+    setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/lost-found",
-        {
-          method: "POST",
+      const data = await createLostFound(form);
 
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(
-          data.message || "Failed to create post."
+      if (!data.success) {
+        throw new Error(
+          data.message ||
+          "Unable to publish post."
         );
-        return;
       }
-
-      setMessage("Post created successfully! 🎉");
 
       setForm({
         title: "",
@@ -87,163 +80,238 @@ function LostFound() {
       });
 
       setShowForm(false);
+      await loadItems();
 
-      loadItems();
     } catch (error) {
-      console.error(error);
-
-      setMessage(
-        "Something went wrong."
-      );
+      setError(error.message);
     }
   }
 
   return (
     <main className="module-page">
 
-      <section className="module-header">
+      <header className="module-topbar">
 
-        <p className="eyebrow">
-          CAMPUSOS · COMMUNITY
-        </p>
+        <button
+          className="dashboard-brand"
+          onClick={() => navigate("/dashboard")}
+        >
+          <span className="brand-dot" />
+          CampusOS
+        </button>
 
-        <h1>
-          Lost
-          <br />
-          <span>& Found.</span>
-        </h1>
+        <button
+          className="back-link"
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Dashboard
+        </button>
 
-        <p>
-          Lost something on campus?
-          Found something that belongs
-          to someone else?
-        </p>
+      </header>
+
+      <section className="module-hero">
+
+        <div>
+          <p className="eyebrow">
+            04 · COMMUNITY
+          </p>
+
+          <h1>
+            Lost &
+            <br />
+            <span>Found.</span>
+          </h1>
+
+          <p>
+            Lost something? Found something?
+            Help your campus community connect.
+          </p>
+        </div>
+
+        <button
+          className="primary-btn"
+          onClick={() => setShowForm(!showForm)}
+        >
+          {showForm ? "Close form" : "Create post"}
+          <span>{showForm ? "×" : "+"}</span>
+        </button>
 
       </section>
 
-      <button
-        className="module-primary-btn"
-        onClick={() =>
-          setShowForm(!showForm)
-        }
-      >
-        {showForm
-          ? "✕ Close"
-          : "+ Create Post"}
-      </button>
-
-      {message && (
-        <div className="module-message">
-          {message}
-        </div>
-      )}
-
       {showForm && (
-        <form
-          className="module-form"
-          onSubmit={handleSubmit}
-        >
+        <section className="form-card">
 
-          <input
-            name="title"
-            placeholder="Item name"
-            value={form.title}
-            onChange={handleChange}
-            required
-          />
-
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            name="location"
-            placeholder="Location"
-            value={form.location}
-            onChange={handleChange}
-            required
-          />
-
-          <select
-            name="type"
-            value={form.type}
-            onChange={handleChange}
-          >
-
-            <option value="Lost">
-              Lost
-            </option>
-
-            <option value="Found">
-              Found
-            </option>
-
-          </select>
-
-          <input
-            name="contact"
-            placeholder="Contact information"
-            value={form.contact}
-            onChange={handleChange}
-            required
-          />
-
-          <button
-            className="module-primary-btn"
-            type="submit"
-          >
-            Publish Post
-          </button>
-
-        </form>
-      )}
-
-      <section className="module-grid">
-
-        {items.map((item) => (
-
-          <article
-            className="module-card"
-            key={item._id}
-          >
-
-            <span className="module-tag">
-              {item.type}
-            </span>
-
-            <h3>
-              {item.title}
-            </h3>
-
-            <p>
-              {item.description}
+          <div className="form-card-heading">
+            <p className="section-label">
+              NEW POST
             </p>
 
-            <small>
-              📍 {item.location}
-            </small>
+            <h2>
+              Help someone find their thing.
+            </h2>
+          </div>
 
-            <small>
-              📞 {item.contact}
-            </small>
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
 
-            {item.postedBy && (
-              <small>
-                👤 {item.postedBy.name}
-              </small>
-            )}
+          <form
+            className="resource-form"
+            onSubmit={handleSubmit}
+          >
 
-          </article>
+            <label>
+              Title
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                placeholder="e.g. Black wallet"
+                required
+              />
+            </label>
 
-        ))}
+            <label>
+              Type
+              <select
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+              >
+                <option value="Lost">
+                  Lost
+                </option>
 
-        {items.length === 0 && (
-          <div className="empty-module">
-            No posts yet.
+                <option value="Found">
+                  Found
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Location
+              <input
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="Where was it lost/found?"
+                required
+              />
+            </label>
+
+            <label>
+              Contact
+              <input
+                name="contact"
+                value={form.contact}
+                onChange={handleChange}
+                placeholder="How can someone contact you?"
+                required
+              />
+            </label>
+
+            <label>
+              Description
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Describe the item..."
+                rows="5"
+                required
+              />
+            </label>
+
+            <button
+              className="primary-btn"
+              type="submit"
+            >
+              Publish post
+              <span>→</span>
+            </button>
+
+          </form>
+
+        </section>
+      )}
+
+      <section className="module-content">
+
+        <div className="section-heading">
+
+          <div>
+            <p className="section-label">
+              COMMUNITY BOARD
+            </p>
+
+            <h2>
+              Recent posts.
+            </h2>
+          </div>
+
+          <span className="section-count">
+            {items.length} POSTS
+          </span>
+
+        </div>
+
+        {loading ? (
+          <div className="loading-box">
+            Loading posts...
+          </div>
+        ) : items.length === 0 ? (
+          <div className="empty-state">
+            No Lost & Found posts yet.
+          </div>
+        ) : (
+          <div className="lost-found-grid">
+
+            {items.map((item) => (
+              <article
+                className="lost-found-card"
+                key={item._id}
+              >
+
+                <div className="lost-found-top">
+
+                  <span
+                    className={
+                      item.type === "Found"
+                        ? "tag tag-found"
+                        : "tag tag-lost"
+                    }
+                  >
+                    {item.type}
+                  </span>
+
+                  <span>
+                    📍 {item.location}
+                  </span>
+
+                </div>
+
+                <h3>{item.title}</h3>
+
+                <p>
+                  {item.description}
+                </p>
+
+                <div className="lost-found-contact">
+                  <span>Contact</span>
+                  <strong>{item.contact}</strong>
+                </div>
+
+                <small>
+                  Posted by{" "}
+                  {item.postedBy?.name ||
+                    "CampusOS"}
+                </small>
+
+              </article>
+            ))}
+
           </div>
         )}
 

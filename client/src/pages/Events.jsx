@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import {
+  getEvents,
+  createEvent,
+} from "../services/api";
 
 function Events() {
-  const [events, setEvents] =
-    useState([]);
+  const navigate = useNavigate();
 
-  const [showForm, setShowForm] =
-    useState(false);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -13,25 +20,22 @@ function Events() {
     date: "",
     time: "",
     location: "",
-    organizer: "",
+    organizer: "CampusOS",
   });
-
-  const [message, setMessage] =
-    useState("");
 
   async function loadEvents() {
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/events"
-      );
+      setLoading(true);
 
-      const data = await response.json();
+      const data = await getEvents();
 
       if (data.success) {
-        setEvents(data.events);
+        setEvents(data.events || []);
       }
     } catch (error) {
-      console.error(error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -42,50 +46,22 @@ function Events() {
   function handleChange(event) {
     setForm({
       ...form,
-      [event.target.name]:
-        event.target.value,
+      [event.target.name]: event.target.value,
     });
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-
-    const token =
-      localStorage.getItem("token");
-
-    if (!token) {
-      setMessage("Please login first.");
-      return;
-    }
+    setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/events",
-        {
-          method: "POST",
+      const data = await createEvent(form);
 
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.message);
-        return;
+      if (!data.success) {
+        throw new Error(
+          data.message || "Unable to create event."
+        );
       }
-
-      setMessage(
-        "Event created successfully!"
-      );
 
       setForm({
         title: "",
@@ -93,169 +69,250 @@ function Events() {
         date: "",
         time: "",
         location: "",
-        organizer: "",
+        organizer: "CampusOS",
       });
 
       setShowForm(false);
+      await loadEvents();
 
-      loadEvents();
     } catch (error) {
-      setMessage(
-        "Something went wrong."
-      );
+      setError(error.message);
     }
   }
 
   return (
     <main className="module-page">
 
-      <section className="module-header">
+      <header className="module-topbar">
 
-        <p className="eyebrow">
-          CAMPUSOS · CAMPUS LIFE
-        </p>
+        <button
+          className="dashboard-brand"
+          onClick={() => navigate("/dashboard")}
+        >
+          <span className="brand-dot" />
+          CampusOS
+        </button>
 
-        <h1>
-          Campus
-          <br />
-          <span>Events.</span>
-        </h1>
+        <button
+          className="back-link"
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Dashboard
+        </button>
 
-        <p>
-          Discover upcoming events,
-          activities and campus programs.
-        </p>
+      </header>
+
+      <section className="module-hero">
+
+        <div>
+          <p className="eyebrow">
+            03 · CAMPUS LIFE
+          </p>
+
+          <h1>
+            Campus
+            <br />
+            <span>Events.</span>
+          </h1>
+
+          <p>
+            Discover events, activities and things
+            happening around your campus.
+          </p>
+        </div>
+
+        <button
+          className="primary-btn"
+          onClick={() => setShowForm(!showForm)}
+        >
+          {showForm ? "Close form" : "Add event"}
+          <span>{showForm ? "×" : "+"}</span>
+        </button>
 
       </section>
 
-
-      <button
-        className="module-primary-btn"
-        onClick={() =>
-          setShowForm(!showForm)
-        }
-      >
-        {showForm
-          ? "✕ Close"
-          : "+ Create Event"}
-      </button>
-
-
-      {message && (
-        <div className="module-message">
-          {message}
-        </div>
-      )}
-
-
       {showForm && (
-        <form
-          className="module-form"
-          onSubmit={handleSubmit}
-        >
+        <section className="form-card">
 
-          <input
-            name="title"
-            placeholder="Event title"
-            value={form.title}
-            onChange={handleChange}
-            required
-          />
-
-          <textarea
-            name="description"
-            placeholder="Event description"
-            value={form.description}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            name="date"
-            placeholder="Date"
-            value={form.date}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            name="time"
-            placeholder="Time"
-            value={form.time}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            name="location"
-            placeholder="Location"
-            value={form.location}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            name="organizer"
-            placeholder="Organizer"
-            value={form.organizer}
-            onChange={handleChange}
-          />
-
-          <button
-            className="module-primary-btn"
-            type="submit"
-          >
-            Publish Event
-          </button>
-
-        </form>
-      )}
-
-
-      <section className="module-grid">
-
-        {events.map((event) => (
-
-          <article
-            className="module-card"
-            key={event._id}
-          >
-
-            <span className="module-tag">
-              🎉 EVENT
-            </span>
-
-            <h3>
-              {event.title}
-            </h3>
-
-            <p>
-              {event.description}
+          <div className="form-card-heading">
+            <p className="section-label">
+              NEW EVENT
             </p>
 
-            <small>
-              📅 {event.date}
-            </small>
+            <h2>
+              Put something on the calendar.
+            </h2>
+          </div>
 
-            <small>
-              ⏰ {event.time}
-            </small>
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
 
-            <small>
-              📍 {event.location}
-            </small>
+          <form
+            className="resource-form"
+            onSubmit={handleSubmit}
+          >
 
-            <small>
-              👤 {event.organizer}
-            </small>
+            <label>
+              Event title
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                placeholder="Event name"
+                required
+              />
+            </label>
 
-          </article>
+            <div className="form-row">
 
-        ))}
+              <label>
+                Date
+                <input
+                  name="date"
+                  value={form.date}
+                  onChange={handleChange}
+                  placeholder="e.g. 20/10/2026"
+                  required
+                />
+              </label>
 
-        {events.length === 0 && (
-          <div className="empty-module">
-            No events yet.
+              <label>
+                Time
+                <input
+                  name="time"
+                  value={form.time}
+                  onChange={handleChange}
+                  placeholder="e.g. 3:00 PM"
+                  required
+                />
+              </label>
+
+            </div>
+
+            <label>
+              Location
+              <input
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="Event location"
+                required
+              />
+            </label>
+
+            <label>
+              Organizer
+              <input
+                name="organizer"
+                value={form.organizer}
+                onChange={handleChange}
+                placeholder="Organizer"
+              />
+            </label>
+
+            <label>
+              Description
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Tell students about the event..."
+                rows="5"
+                required
+              />
+            </label>
+
+            <button
+              className="primary-btn"
+              type="submit"
+            >
+              Publish event
+              <span>→</span>
+            </button>
+
+          </form>
+
+        </section>
+      )}
+
+      <section className="module-content">
+
+        <div className="section-heading">
+
+          <div>
+            <p className="section-label">
+              CAMPUS CALENDAR
+            </p>
+
+            <h2>
+              What's coming up?
+            </h2>
+          </div>
+
+          <span className="section-count">
+            {events.length} EVENTS
+          </span>
+
+        </div>
+
+        {loading ? (
+          <div className="loading-box">
+            Loading events...
+          </div>
+        ) : events.length === 0 ? (
+          <div className="empty-state">
+            No events available yet.
+          </div>
+        ) : (
+          <div className="event-grid">
+
+            {events.map((event) => (
+              <article
+                className="event-full-card"
+                key={event._id}
+              >
+
+                <div className="event-date-box large">
+                  <span>DATE</span>
+                  <strong>
+                    {event.date}
+                  </strong>
+                </div>
+
+                <div className="event-card-body">
+
+                  <div className="tag">
+                    EVENT
+                  </div>
+
+                  <h3>{event.title}</h3>
+
+                  <p>
+                    {event.description}
+                  </p>
+
+                  <div className="event-details">
+                    <span>
+                      📍 {event.location}
+                    </span>
+
+                    <span>
+                      🕐 {event.time}
+                    </span>
+
+                    <span>
+                      👤 {event.organizer}
+                    </span>
+                  </div>
+
+                </div>
+
+              </article>
+            ))}
+
           </div>
         )}
 

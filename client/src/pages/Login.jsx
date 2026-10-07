@@ -1,60 +1,39 @@
-
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { loginUser } from "../services/api";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
   function handleChange(event) {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm({
+      ...form,
+      [event.target.name]: event.target.value,
+    });
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
+    setError("");
     setLoading(true);
-    setMessage("");
 
     try {
-      const response = await fetch(
-        "http://localhost:5001/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: form.email.trim().toLowerCase(),
-            password: form.password,
-          }),
-        }
-      );
+      const data = await loginUser(form);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(
-          data.message || "Invalid email or password."
+      if (!data.success) {
+        throw new Error(
+          data.message || "Login failed."
         );
-        return;
-      }
-
-      if (!data.token || !data.user) {
-        setMessage("Login response is incomplete.");
-        return;
       }
 
       localStorage.setItem("token", data.token);
@@ -63,14 +42,15 @@ function Login() {
         JSON.stringify(data.user)
       );
 
-      navigate("/dashboard", {
-        replace: true,
-      });
-    } catch (error) {
-      console.error("Login error:", error);
+      const destination =
+        location.state?.from || "/dashboard";
 
-      setMessage(
-        "Cannot connect to CampusOS server."
+      navigate(destination, { replace: true });
+
+    } catch (error) {
+      setError(
+        error.message ||
+        "Unable to login. Please try again."
       );
     } finally {
       setLoading(false);
@@ -79,105 +59,124 @@ function Login() {
 
   return (
     <main className="auth-page">
-      <div className="auth-decoration">
-        <div className="auth-glow"></div>
 
-        <div className="auth-brand">
-          CampusOS<span>.</span>
-        </div>
+      <section className="auth-brand-panel">
 
-        <p>
-          Your campus.
-          <br />
-          One starting point.
-        </p>
-      </div>
+        <button
+          className="auth-brand"
+          onClick={() => navigate("/")}
+        >
+          <span className="brand-dot" />
+          CampusOS
+        </button>
 
-      <section className="auth-card">
-        <div className="auth-heading">
+        <div className="auth-brand-content">
           <p className="eyebrow">
             WELCOME BACK
           </p>
 
           <h1>
-            Sign in.
+            Everything
+            <br />
+            starts here.
           </h1>
 
           <p>
-            Access your CampusOS dashboard
-            and everything your campus has to offer.
+            Access your campus resources,
+            notices, events and student services
+            from one place.
           </p>
         </div>
 
-        {message && (
-          <div className="auth-message">
-            {message}
-          </div>
-        )}
+        <span className="auth-panel-footer">
+          Your campus. One starting point.
+        </span>
 
-        <form
-          className="auth-form"
-          onSubmit={handleSubmit}
-        >
-          <div className="auth-field">
-            <label>
-              Email
-            </label>
+      </section>
 
-            <input
-              type="email"
-              name="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+      <section className="auth-form-panel">
 
-          <div className="auth-field">
-            <label>
-              Password
-            </label>
-
-            <input
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        <div className="auth-form-wrapper">
 
           <button
-            className="auth-submit"
-            type="submit"
-            disabled={loading}
+            className="back-link"
+            onClick={() => navigate("/")}
           >
-            {loading
-              ? "Signing in..."
-              : "Sign In →"}
+            ← Back to CampusOS
           </button>
-        </form>
 
-        <div className="auth-switch">
-          <span>Don't have an account?</span>
+          <div className="auth-heading">
+            <p className="section-label">
+              ACCOUNT
+            </p>
 
-          <Link to="/register">
-            Create one
-          </Link>
+            <h2>Sign in</h2>
+
+            <p>
+              Welcome back. Enter your details
+              to continue.
+            </p>
+          </div>
+
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
+
+          <form
+            className="auth-form"
+            onSubmit={handleSubmit}
+          >
+
+            <label>
+              Email
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                required
+              />
+            </label>
+
+            <button
+              className="primary-btn full-btn"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
+              {!loading && <span>→</span>}
+            </button>
+
+          </form>
+
+          <p className="auth-switch">
+            Don't have an account?{" "}
+            <Link to="/register">
+              Create one
+            </Link>
+          </p>
+
         </div>
 
-        <Link
-          to="/"
-          className="auth-home"
-        >
-          ← Back to CampusOS
-        </Link>
       </section>
+
     </main>
   );
 }
 
 export default Login;
-
