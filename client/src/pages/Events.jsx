@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import {
   getEvents,
   createEvent,
+  updateEvent,
+  deleteEvent,
 } from "../services/api";
 
 function Events() {
@@ -13,6 +15,7 @@ function Events() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -23,9 +26,37 @@ function Events() {
     organizer: "CampusOS",
   });
 
+  function getCurrentUserId() {
+    try {
+      const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+      );
+
+      return user?.id || user?._id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function isOwner(event) {
+    const currentUserId = getCurrentUserId();
+
+    const ownerId =
+      event.createdBy?._id ||
+      event.createdBy?.id ||
+      event.createdBy;
+
+    return (
+      currentUserId &&
+      ownerId &&
+      currentUserId.toString() === ownerId.toString()
+    );
+  }
+
   async function loadEvents() {
     try {
       setLoading(true);
+      setError("");
 
       const data = await getEvents();
 
@@ -43,10 +74,45 @@ function Events() {
     loadEvents();
   }, []);
 
+  function resetForm() {
+    setForm({
+      title: "",
+      description: "",
+      date: "",
+      time: "",
+      location: "",
+      organizer: "CampusOS",
+    });
+
+    setEditingId(null);
+    setShowForm(false);
+  }
+
   function handleChange(event) {
     setForm({
       ...form,
       [event.target.name]: event.target.value,
+    });
+  }
+
+  function startEdit(event) {
+    setEditingId(event._id);
+
+    setForm({
+      title: event.title || "",
+      description: event.description || "",
+      date: event.date || "",
+      time: event.time || "",
+      location: event.location || "",
+      organizer: event.organizer || "CampusOS",
+    });
+
+    setError("");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
   }
 
@@ -55,26 +121,51 @@ function Events() {
     setError("");
 
     try {
-      const data = await createEvent(form);
+      let data;
+
+      if (editingId) {
+        data = await updateEvent(
+          editingId,
+          form
+        );
+      } else {
+        data = await createEvent(form);
+      }
 
       if (!data.success) {
         throw new Error(
-          data.message || "Unable to create event."
+          data.message ||
+            "Unable to save event."
         );
       }
 
-      setForm({
-        title: "",
-        description: "",
-        date: "",
-        time: "",
-        location: "",
-        organizer: "CampusOS",
-      });
-
-      setShowForm(false);
+      resetForm();
       await loadEvents();
+    } catch (error) {
+      setError(error.message);
+    }
+  }
 
+  async function handleDelete(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this event?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setError("");
+
+      const data = await deleteEvent(id);
+
+      if (!data.success) {
+        throw new Error(
+          data.message ||
+            "Unable to delete event."
+        );
+      }
+
+      await loadEvents();
     } catch (error) {
       setError(error.message);
     }
@@ -123,7 +214,14 @@ function Events() {
 
         <button
           className="primary-btn"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+              setError("");
+            }
+          }}
         >
           {showForm ? "Close form" : "Add event"}
           <span>{showForm ? "×" : "+"}</span>
@@ -135,13 +233,19 @@ function Events() {
         <section className="form-card">
 
           <div className="form-card-heading">
+
             <p className="section-label">
-              NEW EVENT
+              {editingId
+                ? "EDIT EVENT"
+                : "NEW EVENT"}
             </p>
 
             <h2>
-              Put something on the calendar.
+              {editingId
+                ? "Update your event."
+                : "Put something on the calendar."}
             </h2>
+
           </div>
 
           {error && (
@@ -225,13 +329,30 @@ function Events() {
               />
             </label>
 
-            <button
-              className="primary-btn"
-              type="submit"
-            >
-              Publish event
-              <span>→</span>
-            </button>
+            <div className="form-row">
+
+              <button
+                className="primary-btn"
+                type="submit"
+              >
+                {editingId
+                  ? "Save changes"
+                  : "Publish event"}
+
+                <span>→</span>
+              </button>
+
+              {editingId && (
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={resetForm}
+                >
+                  Cancel
+                </button>
+              )}
+
+            </div>
 
           </form>
 
@@ -270,6 +391,7 @@ function Events() {
           <div className="event-grid">
 
             {events.map((event) => (
+
               <article
                 className="event-full-card"
                 key={event._id}
@@ -277,6 +399,7 @@ function Events() {
 
                 <div className="event-date-box large">
                   <span>DATE</span>
+
                   <strong>
                     {event.date}
                   </strong>
@@ -288,13 +411,16 @@ function Events() {
                     EVENT
                   </div>
 
-                  <h3>{event.title}</h3>
+                  <h3>
+                    {event.title}
+                  </h3>
 
                   <p>
                     {event.description}
                   </p>
 
                   <div className="event-details">
+
                     <span>
                       📍 {event.location}
                     </span>
@@ -306,11 +432,43 @@ function Events() {
                     <span>
                       👤 {event.organizer}
                     </span>
+
                   </div>
+
+                  <small>
+                    Created by{" "}
+                    {event.createdBy?.name ||
+                      "CampusOS"}
+                  </small>
+
+                  {isOwner(event) && (
+                    <div className="card-actions">
+
+                      <button
+                        className="secondary-btn"
+                        onClick={() =>
+                          startEdit(event)
+                        }
+                      >
+                        ✏️ Edit
+                      </button>
+
+                      <button
+                        className="danger-btn"
+                        onClick={() =>
+                          handleDelete(event._id)
+                        }
+                      >
+                        🗑 Delete
+                      </button>
+
+                    </div>
+                  )}
 
                 </div>
 
               </article>
+
             ))}
 
           </div>

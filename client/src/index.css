@@ -6,6 +6,12 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -19,6 +25,7 @@ body {
     "Segoe UI",
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -43,4 +50,46 @@ a {
 img {
   max-width: 100%;
   display: block;
+}
+
+::selection {
+  background: #101114;
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f3f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c9cdd3;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aeb3bb;
+}
+
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+textarea {
+  font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(79, 140, 255, 0.25);
+  outline-offset: 3px;
 }

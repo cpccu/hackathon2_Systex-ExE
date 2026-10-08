@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import {
   getLostFound,
   createLostFound,
+  updateLostFound,
+  deleteLostFound,
 } from "../services/api";
 
 function LostFound() {
@@ -13,6 +15,7 @@ function LostFound() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -22,9 +25,37 @@ function LostFound() {
     contact: "",
   });
 
+  function getCurrentUserId() {
+    try {
+      const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+      );
+
+      return user?.id || user?._id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function isOwner(item) {
+    const currentUserId = getCurrentUserId();
+
+    const ownerId =
+      item.postedBy?._id ||
+      item.postedBy?.id ||
+      item.postedBy;
+
+    return (
+      currentUserId &&
+      ownerId &&
+      currentUserId.toString() === ownerId.toString()
+    );
+  }
+
   async function loadItems() {
     try {
       setLoading(true);
+      setError("");
 
       const data = await getLostFound();
 
@@ -38,7 +69,6 @@ function LostFound() {
 
         setItems(list);
       }
-
     } catch (error) {
       setError(error.message);
     } finally {
@@ -50,10 +80,43 @@ function LostFound() {
     loadItems();
   }, []);
 
+  function resetForm() {
+    setForm({
+      title: "",
+      description: "",
+      location: "",
+      type: "Lost",
+      contact: "",
+    });
+
+    setEditingId(null);
+    setShowForm(false);
+  }
+
   function handleChange(event) {
     setForm({
       ...form,
       [event.target.name]: event.target.value,
+    });
+  }
+
+  function startEdit(item) {
+    setEditingId(item._id);
+
+    setForm({
+      title: item.title || "",
+      description: item.description || "",
+      location: item.location || "",
+      type: item.type || "Lost",
+      contact: item.contact || "",
+    });
+
+    setError("");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
   }
 
@@ -62,26 +125,51 @@ function LostFound() {
     setError("");
 
     try {
-      const data = await createLostFound(form);
+      let data;
+
+      if (editingId) {
+        data = await updateLostFound(
+          editingId,
+          form
+        );
+      } else {
+        data = await createLostFound(form);
+      }
 
       if (!data.success) {
         throw new Error(
           data.message ||
-          "Unable to publish post."
+            "Unable to save post."
         );
       }
 
-      setForm({
-        title: "",
-        description: "",
-        location: "",
-        type: "Lost",
-        contact: "",
-      });
-
-      setShowForm(false);
+      resetForm();
       await loadItems();
+    } catch (error) {
+      setError(error.message);
+    }
+  }
 
+  async function handleDelete(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this post?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setError("");
+
+      const data = await deleteLostFound(id);
+
+      if (!data.success) {
+        throw new Error(
+          data.message ||
+            "Unable to delete post."
+        );
+      }
+
+      await loadItems();
     } catch (error) {
       setError(error.message);
     }
@@ -130,7 +218,14 @@ function LostFound() {
 
         <button
           className="primary-btn"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+              setError("");
+            }
+          }}
         >
           {showForm ? "Close form" : "Create post"}
           <span>{showForm ? "×" : "+"}</span>
@@ -143,11 +238,15 @@ function LostFound() {
 
           <div className="form-card-heading">
             <p className="section-label">
-              NEW POST
+              {editingId
+                ? "EDIT POST"
+                : "NEW POST"}
             </p>
 
             <h2>
-              Help someone find their thing.
+              {editingId
+                ? "Update your post."
+                : "Help someone find their thing."}
             </h2>
           </div>
 
@@ -224,13 +323,30 @@ function LostFound() {
               />
             </label>
 
-            <button
-              className="primary-btn"
-              type="submit"
-            >
-              Publish post
-              <span>→</span>
-            </button>
+            <div className="form-row">
+
+              <button
+                className="primary-btn"
+                type="submit"
+              >
+                {editingId
+                  ? "Save changes"
+                  : "Publish post"}
+
+                <span>→</span>
+              </button>
+
+              {editingId && (
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={resetForm}
+                >
+                  Cancel
+                </button>
+              )}
+
+            </div>
 
           </form>
 
@@ -269,6 +385,7 @@ function LostFound() {
           <div className="lost-found-grid">
 
             {items.map((item) => (
+
               <article
                 className="lost-found-card"
                 key={item._id}
@@ -300,7 +417,9 @@ function LostFound() {
 
                 <div className="lost-found-contact">
                   <span>Contact</span>
-                  <strong>{item.contact}</strong>
+                  <strong>
+                    {item.contact}
+                  </strong>
                 </div>
 
                 <small>
@@ -309,7 +428,32 @@ function LostFound() {
                     "CampusOS"}
                 </small>
 
+                {isOwner(item) && (
+                  <div className="card-actions">
+
+                    <button
+                      className="secondary-btn"
+                      onClick={() =>
+                        startEdit(item)
+                      }
+                    >
+                      ✏️ Edit
+                    </button>
+
+                    <button
+                      className="danger-btn"
+                      onClick={() =>
+                        handleDelete(item._id)
+                      }
+                    >
+                      🗑 Delete
+                    </button>
+
+                  </div>
+                )}
+
               </article>
+
             ))}
 
           </div>

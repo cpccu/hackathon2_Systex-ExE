@@ -1471,3 +1471,56 @@ button {
     padding: 22px;
   }
 }
+/* =========================================================
+   OWNER ACTIONS — EDIT / DELETE
+   ========================================================= */
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.secondary-btn,
+.danger-btn {
+  border: 1px solid #dfe2e7;
+  background: #ffffff;
+  color: #111318;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: #f3f5f7;
+  transform: translateY(-1px);
+}
+
+.danger-btn {
+  color: #c62828;
+  border-color: #f0caca;
+}
+
+.danger-btn:hover {
+  background: #fff2f2;
+  transform: translateY(-1px);
+}
+
+.form-row .secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .card-actions button {
+    width: 100%;
+  }
+}

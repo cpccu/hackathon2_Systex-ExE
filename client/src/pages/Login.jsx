@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
 import { loginUser } from "../services/api";
 
 function Login() {
@@ -7,7 +12,7 @@ function Login() {
   const location = useLocation();
 
   const [form, setForm] = useState({
-    email: "",
+    email: location.state?.email || "",
     password: "",
   });
 
@@ -31,12 +36,11 @@ function Login() {
       const data = await loginUser(form);
 
       if (!data.success) {
-        throw new Error(
-          data.message || "Login failed."
-        );
+        throw new Error(data.message || "Login failed.");
       }
 
       localStorage.setItem("token", data.token);
+
       localStorage.setItem(
         "user",
         JSON.stringify(data.user)
@@ -45,12 +49,13 @@ function Login() {
       const destination =
         location.state?.from || "/dashboard";
 
-      navigate(destination, { replace: true });
-
+      navigate(destination, {
+        replace: true,
+      });
     } catch (error) {
       setError(
         error.message ||
-        "Unable to login. Please try again."
+          "Unable to login. Please try again."
       );
     } finally {
       setLoading(false);
@@ -59,9 +64,7 @@ function Login() {
 
   return (
     <main className="auth-page">
-
       <section className="auth-brand-panel">
-
         <button
           className="auth-brand"
           onClick={() => navigate("/")}
@@ -83,21 +86,18 @@ function Login() {
 
           <p>
             Access your campus resources,
-            notices, events and student services
-            from one place.
+            notices, events and student
+            services from one place.
           </p>
         </div>
 
         <span className="auth-panel-footer">
           Your campus. One starting point.
         </span>
-
       </section>
 
       <section className="auth-form-panel">
-
         <div className="auth-form-wrapper">
-
           <button
             className="back-link"
             onClick={() => navigate("/")}
@@ -113,8 +113,8 @@ function Login() {
             <h2>Sign in</h2>
 
             <p>
-              Welcome back. Enter your details
-              to continue.
+              Welcome back. Enter your
+              details to continue.
             </p>
           </div>
 
@@ -128,9 +128,9 @@ function Login() {
             className="auth-form"
             onSubmit={handleSubmit}
           >
-
             <label>
               Email
+
               <input
                 type="email"
                 name="email"
@@ -143,6 +143,7 @@ function Login() {
 
             <label>
               Password
+
               <input
                 type="password"
                 name="password"
@@ -158,10 +159,14 @@ function Login() {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign in"}
-              {!loading && <span>→</span>}
-            </button>
+              {loading
+                ? "Signing in..."
+                : "Sign in"}
 
+              {!loading && (
+                <span>→</span>
+              )}
+            </button>
           </form>
 
           <p className="auth-switch">
@@ -170,11 +175,8 @@ function Login() {
               Create one
             </Link>
           </p>
-
         </div>
-
       </section>
-
     </main>
   );
 }

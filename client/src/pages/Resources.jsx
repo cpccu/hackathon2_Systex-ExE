@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import {
   getResources,
   createResource,
+  updateResource,
+  deleteResource,
 } from "../services/api";
 
 function Resources() {
@@ -13,6 +15,7 @@ function Resources() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -23,17 +26,45 @@ function Resources() {
     fileUrl: "",
   });
 
+  function getCurrentUserId() {
+    try {
+      const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+      );
+
+      return user?.id || user?._id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function isOwner(resource) {
+    const currentUserId = getCurrentUserId();
+
+    const ownerId =
+      resource.uploadedBy?._id ||
+      resource.uploadedBy?.id ||
+      resource.uploadedBy;
+
+    return (
+      currentUserId &&
+      ownerId &&
+      currentUserId.toString() === ownerId.toString()
+    );
+  }
+
   async function loadResources() {
     try {
       setLoading(true);
+      setError("");
 
       const data = await getResources();
 
       if (data.success) {
         setResources(
           data.resources ||
-          data.items ||
-          []
+            data.items ||
+            []
         );
       }
     } catch (error) {
@@ -47,10 +78,45 @@ function Resources() {
     loadResources();
   }, []);
 
+  function resetForm() {
+    setForm({
+      title: "",
+      course: "",
+      semester: "",
+      type: "Previous Question",
+      description: "",
+      fileUrl: "",
+    });
+
+    setEditingId(null);
+    setShowForm(false);
+  }
+
   function handleChange(event) {
     setForm({
       ...form,
       [event.target.name]: event.target.value,
+    });
+  }
+
+  function startEdit(resource) {
+    setEditingId(resource._id);
+
+    setForm({
+      title: resource.title || "",
+      course: resource.course || "",
+      semester: resource.semester || "",
+      type: resource.type || "Previous Question",
+      description: resource.description || "",
+      fileUrl: resource.fileUrl || "",
+    });
+
+    setError("");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
   }
 
@@ -59,26 +125,51 @@ function Resources() {
     setError("");
 
     try {
-      const data = await createResource(form);
+      let data;
+
+      if (editingId) {
+        data = await updateResource(
+          editingId,
+          form
+        );
+      } else {
+        data = await createResource(form);
+      }
 
       if (!data.success) {
         throw new Error(
-          data.message || "Unable to add resource."
+          data.message ||
+            "Unable to save resource."
         );
       }
 
-      setForm({
-        title: "",
-        course: "",
-        semester: "",
-        type: "Previous Question",
-        description: "",
-        fileUrl: "",
-      });
-
-      setShowForm(false);
+      resetForm();
       await loadResources();
+    } catch (error) {
+      setError(error.message);
+    }
+  }
 
+  async function handleDelete(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this resource?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setError("");
+
+      const data = await deleteResource(id);
+
+      if (!data.success) {
+        throw new Error(
+          data.message ||
+            "Unable to delete resource."
+        );
+      }
+
+      await loadResources();
     } catch (error) {
       setError(error.message);
     }
@@ -127,7 +218,14 @@ function Resources() {
 
         <button
           className="primary-btn"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+              setError("");
+            }
+          }}
         >
           {showForm ? "Close form" : "Add resource"}
           <span>{showForm ? "×" : "+"}</span>
@@ -140,9 +238,16 @@ function Resources() {
 
           <div className="form-card-heading">
             <p className="section-label">
-              NEW RESOURCE
+              {editingId
+                ? "EDIT RESOURCE"
+                : "NEW RESOURCE"}
             </p>
-            <h2>Add something useful.</h2>
+
+            <h2>
+              {editingId
+                ? "Update your resource."
+                : "Add something useful."}
+            </h2>
           </div>
 
           {error && (
@@ -231,13 +336,30 @@ function Resources() {
               />
             </label>
 
-            <button
-              className="primary-btn"
-              type="submit"
-            >
-              Publish resource
-              <span>→</span>
-            </button>
+            <div className="form-row">
+
+              <button
+                className="primary-btn"
+                type="submit"
+              >
+                {editingId
+                  ? "Save changes"
+                  : "Publish resource"}
+
+                <span>→</span>
+              </button>
+
+              {editingId && (
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={resetForm}
+                >
+                  Cancel
+                </button>
+              )}
+
+            </div>
 
           </form>
 
@@ -276,6 +398,7 @@ function Resources() {
           <div className="resource-list">
 
             {resources.map((resource) => (
+
               <article
                 className="resource-card"
                 key={resource._id}
@@ -302,7 +425,9 @@ function Resources() {
 
                   </div>
 
-                  <h3>{resource.title}</h3>
+                  <h3>
+                    {resource.title}
+                  </h3>
 
                   <p>
                     {resource.description ||
@@ -312,6 +437,38 @@ function Resources() {
                   <small>
                     {resource.course}
                   </small>
+
+                  {resource.uploadedBy && (
+                    <small>
+                      Uploaded by{" "}
+                      {resource.uploadedBy.name ||
+                        "CampusOS"}
+                    </small>
+                  )}
+
+                  {isOwner(resource) && (
+                    <div className="card-actions">
+
+                      <button
+                        className="secondary-btn"
+                        onClick={() =>
+                          startEdit(resource)
+                        }
+                      >
+                        ✏️ Edit
+                      </button>
+
+                      <button
+                        className="danger-btn"
+                        onClick={() =>
+                          handleDelete(resource._id)
+                        }
+                      >
+                        🗑 Delete
+                      </button>
+
+                    </div>
+                  )}
 
                 </div>
 
@@ -327,6 +484,7 @@ function Resources() {
                 )}
 
               </article>
+
             ))}
 
           </div>

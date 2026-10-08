@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/api";
@@ -36,12 +37,17 @@ function Register() {
         );
       }
 
-      navigate("/login");
-
+      // OTP removed.
+      // Registration is complete, so go directly to login.
+      navigate("/login", {
+        state: {
+          message:
+            "Account created successfully. Please sign in.",
+        },
+      });
     } catch (error) {
       setError(
-        error.message ||
-        "Unable to create account."
+        error.message || "Unable to create account."
       );
     } finally {
       setLoading(false);
@@ -50,9 +56,7 @@ function Register() {
 
   return (
     <main className="auth-page">
-
       <section className="auth-brand-panel register-panel">
-
         <button
           className="auth-brand"
           onClick={() => navigate("/")}
@@ -82,11 +86,9 @@ function Register() {
         <span className="auth-panel-footer">
           Built for students.
         </span>
-
       </section>
 
       <section className="auth-form-panel">
-
         <div className="auth-form-wrapper">
 
           <button
@@ -118,9 +120,9 @@ function Register() {
             className="auth-form"
             onSubmit={handleSubmit}
           >
-
             <label>
               Full name
+
               <input
                 type="text"
                 name="name"
@@ -133,6 +135,7 @@ function Register() {
 
             <label>
               Email
+
               <input
                 type="email"
                 name="email"
@@ -145,6 +148,7 @@ function Register() {
 
             <label>
               Password
+
               <input
                 type="password"
                 name="password"
@@ -164,9 +168,9 @@ function Register() {
               {loading
                 ? "Creating account..."
                 : "Create account"}
+
               {!loading && <span>→</span>}
             </button>
-
           </form>
 
           <p className="auth-switch">
@@ -177,11 +181,10 @@ function Register() {
           </p>
 
         </div>
-
       </section>
-
     </main>
   );
 }
 
 export default Register;
+

@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import {
   getNotices,
   createNotice,
+  updateNotice,
+  deleteNotice,
 } from "../services/api";
 
 function Notices() {
@@ -13,6 +15,7 @@ function Notices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -21,9 +24,37 @@ function Notices() {
     date: "",
   });
 
+  function getCurrentUserId() {
+    try {
+      const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+      );
+
+      return user?.id || user?._id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function isOwner(notice) {
+    const currentUserId = getCurrentUserId();
+
+    const ownerId =
+      notice.postedBy?._id ||
+      notice.postedBy?.id ||
+      notice.postedBy;
+
+    return (
+      currentUserId &&
+      ownerId &&
+      currentUserId.toString() === ownerId.toString()
+    );
+  }
+
   async function loadNotices() {
     try {
       setLoading(true);
+      setError("");
 
       const data = await getNotices();
 
@@ -41,10 +72,41 @@ function Notices() {
     loadNotices();
   }, []);
 
+  function resetForm() {
+    setForm({
+      title: "",
+      description: "",
+      category: "General",
+      date: "",
+    });
+
+    setEditingId(null);
+    setShowForm(false);
+  }
+
   function handleChange(event) {
     setForm({
       ...form,
       [event.target.name]: event.target.value,
+    });
+  }
+
+  function startEdit(notice) {
+    setEditingId(notice._id);
+
+    setForm({
+      title: notice.title || "",
+      description: notice.description || "",
+      category: notice.category || "General",
+      date: notice.date || "",
+    });
+
+    setError("");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
   }
 
@@ -53,24 +115,51 @@ function Notices() {
     setError("");
 
     try {
-      const data = await createNotice(form);
+      let data;
+
+      if (editingId) {
+        data = await updateNotice(
+          editingId,
+          form
+        );
+      } else {
+        data = await createNotice(form);
+      }
 
       if (!data.success) {
         throw new Error(
-          data.message || "Unable to publish notice."
+          data.message ||
+            "Unable to save notice."
         );
       }
 
-      setForm({
-        title: "",
-        description: "",
-        category: "General",
-        date: "",
-      });
-
-      setShowForm(false);
+      resetForm();
       await loadNotices();
+    } catch (error) {
+      setError(error.message);
+    }
+  }
 
+  async function handleDelete(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this notice?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setError("");
+
+      const data = await deleteNotice(id);
+
+      if (!data.success) {
+        throw new Error(
+          data.message ||
+            "Unable to delete notice."
+        );
+      }
+
+      await loadNotices();
     } catch (error) {
       setError(error.message);
     }
@@ -119,7 +208,14 @@ function Notices() {
 
         <button
           className="primary-btn"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+              setError("");
+            }
+          }}
         >
           {showForm ? "Close form" : "Post notice"}
           <span>{showForm ? "×" : "+"}</span>
@@ -131,10 +227,19 @@ function Notices() {
         <section className="form-card">
 
           <div className="form-card-heading">
+
             <p className="section-label">
-              NEW NOTICE
+              {editingId
+                ? "EDIT NOTICE"
+                : "NEW NOTICE"}
             </p>
-            <h2>Share an update.</h2>
+
+            <h2>
+              {editingId
+                ? "Update your notice."
+                : "Share an update."}
+            </h2>
+
           </div>
 
           {error && (
@@ -202,13 +307,30 @@ function Notices() {
               />
             </label>
 
-            <button
-              className="primary-btn"
-              type="submit"
-            >
-              Publish notice
-              <span>→</span>
-            </button>
+            <div className="form-row">
+
+              <button
+                className="primary-btn"
+                type="submit"
+              >
+                {editingId
+                  ? "Save changes"
+                  : "Publish notice"}
+
+                <span>→</span>
+              </button>
+
+              {editingId && (
+                <button
+                  className="secondary-btn"
+                  type="button"
+                  onClick={resetForm}
+                >
+                  Cancel
+                </button>
+              )}
+
+            </div>
 
           </form>
 
@@ -246,16 +368,18 @@ function Notices() {
         ) : (
           <div className="notice-list">
 
-            {notices.map((notice) => (
+            {notices.map((notice, index) => (
+
               <article
                 className="notice-card"
                 key={notice._id}
               >
 
                 <div className="notice-number">
-                  {String(
-                    notices.indexOf(notice) + 1
-                  ).padStart(2, "0")}
+                  {String(index + 1).padStart(
+                    2,
+                    "0"
+                  )}
                 </div>
 
                 <div className="notice-main">
@@ -274,7 +398,9 @@ function Notices() {
 
                   </div>
 
-                  <h3>{notice.title}</h3>
+                  <h3>
+                    {notice.title}
+                  </h3>
 
                   <p>
                     {notice.description}
@@ -286,9 +412,34 @@ function Notices() {
                       "CampusOS"}
                   </small>
 
+                  {isOwner(notice) && (
+                    <div className="card-actions">
+
+                      <button
+                        className="secondary-btn"
+                        onClick={() =>
+                          startEdit(notice)
+                        }
+                      >
+                        ✏️ Edit
+                      </button>
+
+                      <button
+                        className="danger-btn"
+                        onClick={() =>
+                          handleDelete(notice._id)
+                        }
+                      >
+                        🗑 Delete
+                      </button>
+
+                    </div>
+                  )}
+
                 </div>
 
               </article>
+
             ))}
 
           </div>

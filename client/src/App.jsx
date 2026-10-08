@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter,
   Routes,
@@ -7,6 +8,7 @@ import {
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+
 import Dashboard from "./pages/Dashboard";
 import Resources from "./pages/Resources";
 import LostFound from "./pages/LostFound";
@@ -20,12 +22,30 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* =========================================
+            PUBLIC
+        ========================================= */}
 
-        {/* Protected */}
+        <Route
+          path="/"
+          element={<Home />}
+        />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+
+        {/* =========================================
+            PROTECTED
+        ========================================= */}
+
         <Route
           path="/dashboard"
           element={
@@ -71,8 +91,15 @@ function App() {
           }
         />
 
-        {/* Unknown route */}
-        <Route path="*" element={<Home />} />
+
+        {/* =========================================
+            UNKNOWN ROUTE
+        ========================================= */}
+
+        <Route
+          path="*"
+          element={<Home />}
+        />
 
       </Routes>
     </BrowserRouter>
@@ -80,3 +107,4 @@ function App() {
 }
 
 export default App;
+
